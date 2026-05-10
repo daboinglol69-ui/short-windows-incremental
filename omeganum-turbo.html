@@ -362,6 +362,114 @@ body {
 .toggle-btn.on { background: #2a5050; color: var(--accent); }
 
 .pp-stat { font-size: 1.2em; font-weight: 700; color: #c0a0ff; margin-bottom: 12px; }
+
+/* ── PRESTIGE SCROLL ── */
+.prestige-section-label {
+  font-size: .85em;
+  font-weight: 700;
+  color: var(--warn);
+  padding: 8px 0 6px;
+  border-bottom: 2px solid var(--warn);
+  margin: 12px 0 8px;
+  letter-spacing: .5px;
+}
+
+.scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-top: 2px solid #5a8888;
+  border-bottom: 2px solid #5a8888;
+  padding: 8px 0;
+  background: var(--sunken);
+}
+
+.scroll-inner {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px;
+  min-width: min-content;
+}
+
+.prestige-upg-card {
+  flex-shrink: 0;
+  width: 180px;
+  background: var(--raised);
+  border-top: 2px solid #ff9966;
+  border-left: 2px solid #ff9966;
+  border-right: 2px solid #6b2200;
+  border-bottom: 2px solid #6b2200;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prestige-upg-card.affordable {
+  background: #5a4030;
+  border-top-color: #ffaa77;
+  border-left-color: #ffaa77;
+}
+
+.pres-upg-name {
+  font-size: .82em;
+  font-weight: 700;
+  color: #ffaa77;
+  line-height: 1.2;
+}
+
+.pres-upg-lvl {
+  font-size: .7em;
+  color: #cc8855;
+}
+
+.pres-upg-desc {
+  font-size: .7em;
+  color: var(--light);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.pres-upg-cost {
+  font-size: .75em;
+  color: var(--warn);
+  font-weight: 700;
+  padding-top: 4px;
+  border-top: 1px solid #8b4513;
+}
+
+.pres-buy-btn {
+  font-family: 'Kalam', cursive;
+  font-size: .75em;
+  font-weight: 700;
+  background: var(--panel);
+  color: #ffaa77;
+  border-top: 1px solid #ff9966;
+  border-left: 1px solid #ff9966;
+  border-right: 1px solid #6b2200;
+  border-bottom: 1px solid #6b2200;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: all .08s;
+}
+
+.pres-buy-btn:hover:not(:disabled) {
+  background: #3d3020;
+  color: #ffbb99;
+}
+
+.pres-buy-btn:active:not(:disabled) {
+  border-top-color: #6b2200;
+  border-left-color: #6b2200;
+  border-right-color: #ff9966;
+  border-bottom-color: #ff9966;
+}
+
+.pres-buy-btn:disabled {
+  color: #6b5540;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 </style>
 </head>
 <body>
@@ -412,6 +520,11 @@ body {
       </div>
       <button class="pres-btn pp-btn" id="pp-btn">[ Perform Prestige Reset ]</button>
       <div class="req-text" id="pp-req-txt">Requires <span id="pp-cost-disp">10,000</span> points</div>
+      
+      <div class="prestige-section-label">⚡ PRESTIGE POWER-UPS (100x cost, 50x power!)</div>
+      <div class="scroll-container">
+        <div class="scroll-inner" id="prestige-upg-scroll"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -527,12 +640,13 @@ function B(v) { return new Big(v); }
 
 // ════════════════════════════════════════════════════════════
 //  GAME STATE
-// ═════════════���══════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
 var P = {
   points: B(0),
   pp: B(0), et: B(0), inf: B(0), hyp: B(0),
   levels: { gen: 0, click: 0, worker: 0, factory: 0, mult: 0 },
   ppUpg: { genBoost: 0, clickBoost: 0, workerBoost: 0, factoryBoost: 0, expBoost: 0 },
+  presUpg: { gen: 0, click: 0, worker: 0, factory: 0, mult: 0, exp: 0 },
   hypUpg: { tetration: 0, pentation: 0, hexation: 0 },
   auto: { gen: false, click: false, worker: false, factory: false }
 };
@@ -601,6 +715,39 @@ var PP_UPG = {
   }
 };
 
+var PRES_UPG = {
+  gen: {
+    name: '⚡ Generator Prime',
+    desc: 'Generators produce <b>×50 more</b>. Insanely powerful!',
+    cost: function(l) { return UPG.gen.cost(P.levels.gen).mul(B(100)); }
+  },
+  click: {
+    name: '⚡ Divine Tap',
+    desc: 'Click power <b>×50</b> of one level.',
+    cost: function(l) { return UPG.click.cost(P.levels.click).mul(B(100)); }
+  },
+  worker: {
+    name: '⚡ Worker Ascension',
+    desc: 'Workers provide <b>×50 more</b> multiplier.',
+    cost: function(l) { return UPG.worker.cost(P.levels.worker).mul(B(100)); }
+  },
+  factory: {
+    name: '⚡ Industrial Boom',
+    desc: 'Factories add <b>×50 to bonus</b>.',
+    cost: function(l) { return UPG.factory.cost(P.levels.factory).mul(B(100)); }
+  },
+  mult: {
+    name: '⚡ Exponential Surge',
+    desc: 'Add <b>+2.5 exponent</b> (50x normal boost!).',
+    cost: function(l) { return UPG.mult.cost(P.levels.mult).mul(B(100)); }
+  },
+  exp: {
+    name: '⚡ Ultra Exponent',
+    desc: 'Add <b>+1 more exponent</b>. Game-changer!',
+    cost: function(l) { return B(1e12); }
+  }
+};
+
 var HYP_UPG = {
   tetration: {
     name: 'Tetration Engine',
@@ -625,16 +772,19 @@ var HYP_UPG = {
 function getGenOutput() {
   var base = B(2 * P.levels.gen);
   var genBoostMult = B(1 + P.ppUpg.genBoost * 0.5);
+  var genPrestigeMult = B(Math.pow(50, P.presUpg.gen));
   
   var workers = P.levels.worker * 3;
   var workerMult = B(1 + workers * (0.5 + P.ppUpg.workerBoost * 0.5));
+  var workerPrestigeMult = B(Math.pow(50, P.presUpg.worker));
   
   var factoryBoost = B(1 + P.levels.factory * (0.2 + P.ppUpg.factoryBoost * 0.3));
+  var factoryPrestigeMult = B(Math.pow(50, P.presUpg.factory));
   var ppMult = B(1.1).pow(P.pp.toNumber());
   
-  var result = base.mul(genBoostMult).mul(workerMult).mul(factoryBoost).mul(ppMult);
+  var result = base.mul(genBoostMult).mul(genPrestigeMult).mul(workerMult).mul(workerPrestigeMult).mul(factoryBoost).mul(factoryPrestigeMult).mul(ppMult);
   
-  var exponent = 1 + P.levels.mult * 0.05 + P.ppUpg.expBoost * 0.1;
+  var exponent = 1 + P.levels.mult * 0.05 + P.ppUpg.expBoost * 0.1 + P.presUpg.mult * 2.5 + P.presUpg.exp;
   result = result.pow(exponent);
 
   // Hyperoperations
@@ -653,8 +803,9 @@ function getGenOutput() {
 function getClickPower() {
   var base = B(1 + P.levels.click);
   var clickBoost = B(Math.pow(1.3, P.ppUpg.clickBoost));
+  var clickPrestigeBoost = B(Math.pow(50, P.presUpg.click));
   var ppMult = B(1.1).pow(P.pp.toNumber());
-  return base.mul(clickBoost).mul(ppMult);
+  return base.mul(clickBoost).mul(clickPrestigeBoost).mul(ppMult);
 }
 
 function getPrestigeCost() {
@@ -700,6 +851,15 @@ function buyPPUpg(id) {
   }
 }
 
+function buyPresUpg(id) {
+  var cost = PRES_UPG[id].cost(P.presUpg[id]);
+  if (P.points.gte(cost)) {
+    P.points = P.points.sub(cost);
+    P.presUpg[id]++;
+    updateUI();
+  }
+}
+
 function buyHypUpg(id) {
   var cost = HYP_UPG[id].cost(P.hypUpg[id]);
   var available = P.inf.toNumber() - Object.values(P.hypUpg).reduce((a, b) => a + b, 0);
@@ -715,6 +875,7 @@ function prestige() {
     P.points = B(0);
     P.pp = P.pp.add(B(1));
     for (var k in P.levels) P.levels[k] = 0;
+    for (var k in P.presUpg) P.presUpg[k] = 0;
     updateUI();
   }
 }
@@ -727,6 +888,7 @@ function eternity() {
     P.et = P.et.add(B(1));
     for (var k in P.levels) P.levels[k] = 0;
     for (var k in P.ppUpg) P.ppUpg[k] = 0;
+    for (var k in P.presUpg) P.presUpg[k] = 0;
     for (var k in P.auto) P.auto[k] = false;
     updateUI();
   }
@@ -741,6 +903,7 @@ function infinity() {
     P.inf = P.inf.add(B(1));
     for (var k in P.levels) P.levels[k] = 0;
     for (var k in P.ppUpg) P.ppUpg[k] = 0;
+    for (var k in P.presUpg) P.presUpg[k] = 0;
     for (var k in P.auto) P.auto[k] = false;
     updateUI();
   }
@@ -805,6 +968,9 @@ function updateUI() {
   // Upgrades
   buildUpgrades(pts);
 
+  // Prestige upgrades scroll
+  buildPrestigeUpgrades(pts);
+
   // PP Upgrades
   buildPPUpgrades();
 
@@ -848,6 +1014,25 @@ function buildUpgrades(pts) {
   }
 
   document.getElementById('upgrades-list').innerHTML = html;
+}
+
+function buildPrestigeUpgrades(pts) {
+  var html = '';
+  
+  for (var id in PRES_UPG) {
+    var d = PRES_UPG[id], lvl = P.presUpg[id];
+    var cost = d.cost(lvl), can = pts.gte(cost);
+    
+    html += '<div class="prestige-upg-card' + (can ? ' affordable' : '') + '">' +
+      '<div class="pres-upg-name">' + d.name + '</div>' +
+      '<div class="pres-upg-lvl">Lv ' + lvl + '</div>' +
+      '<div class="pres-upg-desc">' + d.desc + '</div>' +
+      '<div class="pres-upg-cost">' + fmt(cost) + '</div>' +
+      '<button class="pres-buy-btn" onclick="buyPresUpg(\'' + id + '\')" ' + (can ? '' : 'disabled') + '>Buy</button>' +
+      '</div>';
+  }
+  
+  document.getElementById('prestige-upg-scroll').innerHTML = html;
 }
 
 function buildPPUpgrades() {
