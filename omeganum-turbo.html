@@ -168,7 +168,7 @@ body {
 .pbadge.pp   { color: #c0a0ff; }
 .pbadge.et   { color: var(--gold); }
 .pbadge.inf  { color: var(--inf);  }
-.pbadge.sing { color: var(--sing); }
+.pbadge.hyp  { color: #ff6699; }
 
 /* ── TABS ── */
 .tabs {
@@ -249,7 +249,7 @@ body {
 .pres-btn.pp-btn   { color:#c0a0ff; }
 .pres-btn.et-btn   { color:var(--gold); }
 .pres-btn.inf-btn  { color:var(--inf);  }
-.pres-btn.sg-btn   { color:var(--sing); }
+.pres-btn.hyp-btn  { color:#ff6699; }
 .pres-btn:not(:disabled):hover { background:#4a6868; }
 
 .req-text     { font-size:.82em; color:var(--mid); margin-top:6px; text-align:center; }
@@ -360,6 +360,8 @@ body {
 }
 .toggle-btn:hover { background: #3d6060; color: var(--hi); }
 .toggle-btn.on { background: #2a5050; color: var(--accent); }
+
+.pp-stat { font-size: 1.2em; font-weight: 700; color: #c0a0ff; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -383,8 +385,10 @@ body {
 <div class="tabs" id="tabs">
   <button class="tab-btn active" data-tab="main">Upgrades</button>
   <button class="tab-btn" data-tab="prestige">Prestige<small>Cost: (PP+1)³×10k</small></button>
+  <button class="tab-btn" data-tab="pp-upgrades">PP Upgrades<small>Unlock @ PP 1</small></button>
   <button class="tab-btn tab-et"  data-tab="eternity"    id="tab-et" >Eternity<small>Req: 1e100</small></button>
   <button class="tab-btn tab-inf" data-tab="infinity"    id="tab-inf">Infinity<small>Req: 1e500</small></button>
+  <button class="tab-btn tab-hyp" data-tab="hyperops"    id="tab-hyp">Hyperops<small>Req: ∞ 1</small></button>
   <button class="tab-btn tab-auto" data-tab="automation" id="tab-auto">Automation<small>Unlocks @ ∞</small></button>
 </div>
 
@@ -412,6 +416,17 @@ body {
   </div>
 </div>
 
+<!-- ══ PP UPGRADES ══ -->
+<div id="pp-upgrades" class="tab-content">
+  <div class="game-window" style="max-width:700px;">
+    <div class="titlebar" style="background:linear-gradient(90deg,#8050a0,#604080)"><span class="titlebar-dot"></span> Prestige Upgrades</div>
+    <div class="body">
+      <div class="pp-stat">Available: <span id="pp-available">0</span> PP</div>
+      <div id="pp-upg-list" class="upg-grid"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ ETERNITY ══ -->
 <div id="eternity" class="tab-content">
   <div class="game-window" style="max-width:580px;">
@@ -425,6 +440,14 @@ body {
   <div class="game-window" style="max-width:580px;">
     <div class="titlebar" style="background:linear-gradient(90deg,#006080,#004060)"><span class="titlebar-dot"></span> Infinity — Layer 3</div>
     <div class="body"><div id="inf-inner"></div></div>
+  </div>
+</div>
+
+<!-- ══ HYPEROPERATIONS ══ -->
+<div id="hyperops" class="tab-content">
+  <div class="game-window" style="max-width:700px;">
+    <div class="titlebar" style="background:linear-gradient(90deg,#804080,#602060)"><span class="titlebar-dot"></span> Hyperoperations</div>
+    <div class="body"><div id="hyp-inner"></div></div>
   </div>
 </div>
 
@@ -504,11 +527,13 @@ function B(v) { return new Big(v); }
 
 // ════════════════════════════════════════════════════════════
 //  GAME STATE
-// ════════════════════════════════════════════════════════════
+// ═════════════���══════════════════════════════════════════════
 var P = {
   points: B(0),
-  pp: B(0), et: B(0), inf: B(0),
+  pp: B(0), et: B(0), inf: B(0), hyp: B(0),
   levels: { gen: 0, click: 0, worker: 0, factory: 0, mult: 0 },
+  ppUpg: { genBoost: 0, clickBoost: 0, workerBoost: 0, factoryBoost: 0, expBoost: 0 },
+  hypUpg: { tetration: 0, pentation: 0, hexation: 0 },
   auto: { gen: false, click: false, worker: false, factory: false }
 };
 
@@ -548,24 +573,88 @@ var UPG = {
   }
 };
 
+var PP_UPG = {
+  genBoost: {
+    name: 'Generator Supercharge',
+    desc: 'Each level: Generators produce <b>+50%</b> more. Costs scale with purchases.',
+    cost: function(l) { return l + 1; }
+  },
+  clickBoost: {
+    name: 'Divine Click',
+    desc: 'Each level: Click power <b>×1.3</b>. Prestige-tier multiplier.',
+    cost: function(l) { return l + 1; }
+  },
+  workerBoost: {
+    name: 'Worker Transcendence',
+    desc: 'Each level: Workers grant <b>+0.5</b> multiplier instead of 0.5 per worker.',
+    cost: function(l) { return Math.floor((l + 1) * 1.5); }
+  },
+  factoryBoost: {
+    name: 'Industrial Ascension',
+    desc: 'Each level: Factories add <b>+50%</b> instead of +20%. Exponential scaling.',
+    cost: function(l) { return Math.floor((l + 1) * 1.5); }
+  },
+  expBoost: {
+    name: 'Exponent Mastery',
+    desc: 'Each level: Add <b>+0.1</b> exponent (doubled). Hyperexponential growth.',
+    cost: function(l) { return Math.floor((l + 1) * 2); }
+  }
+};
+
+var HYP_UPG = {
+  tetration: {
+    name: 'Tetration Engine',
+    desc: 'Each level: Apply tetration to production. x↑↑level.',
+    cost: function(l) { return (l + 1) * 5; }
+  },
+  pentation: {
+    name: 'Pentation Protocol',
+    desc: 'Each level: Apply pentation to production. x↑↑↑level.',
+    cost: function(l) { return (l + 1) * 15; }
+  },
+  hexation: {
+    name: 'Hexation Horizon',
+    desc: 'Each level: Apply hexation to production. x↑↑↑↑level.',
+    cost: function(l) { return (l + 1) * 50; }
+  }
+};
+
 // ════════════════════════════════════════════════════════════
 //  MATH
 // ════════════════════════════════════════════════════════════
 function getGenOutput() {
   var base = B(2 * P.levels.gen);
+  var genBoostMult = B(1 + P.ppUpg.genBoost * 0.5);
+  
   var workers = P.levels.worker * 3;
-  var workerMult = B(1 + workers * 0.5);
-  var factoryBoost = B(1 + P.levels.factory * 0.2);
+  var workerMult = B(1 + workers * (0.5 + P.ppUpg.workerBoost * 0.5));
+  
+  var factoryBoost = B(1 + P.levels.factory * (0.2 + P.ppUpg.factoryBoost * 0.3));
   var ppMult = B(1.1).pow(P.pp.toNumber());
-  var result = base.mul(workerMult).mul(factoryBoost).mul(ppMult);
-  var exponent = 1 + P.levels.mult * 0.05;
-  return result.pow(exponent);
+  
+  var result = base.mul(genBoostMult).mul(workerMult).mul(factoryBoost).mul(ppMult);
+  
+  var exponent = 1 + P.levels.mult * 0.05 + P.ppUpg.expBoost * 0.1;
+  result = result.pow(exponent);
+
+  // Hyperoperations
+  if (P.hypUpg.tetration > 0) {
+    var val = result.toNumber();
+    for (var i = 0; i < P.hypUpg.tetration; i++) {
+      if (val > 2) val = Math.pow(10, Math.log10(val) * Math.log10(val));
+      else break;
+    }
+    result = B(val);
+  }
+
+  return result;
 }
 
 function getClickPower() {
   var base = B(1 + P.levels.click);
+  var clickBoost = B(Math.pow(1.3, P.ppUpg.clickBoost));
   var ppMult = B(1.1).pow(P.pp.toNumber());
-  return base.mul(ppMult);
+  return base.mul(clickBoost).mul(ppMult);
 }
 
 function getPrestigeCost() {
@@ -581,6 +670,10 @@ function getInfinityCost() {
   return B(1e500);
 }
 
+function getPPAvailable() {
+  return P.pp.toNumber() - Object.values(P.ppUpg).reduce((a, b) => a + b, 0);
+}
+
 // ════════════════════════════════════════════════════════════
 //  ACTIONS
 // ════════════════════════════════════════════════════════════
@@ -594,6 +687,24 @@ function buy(id) {
   if (P.points.gte(cost)) {
     P.points = P.points.sub(cost);
     P.levels[id]++;
+    updateUI();
+  }
+}
+
+function buyPPUpg(id) {
+  var cost = PP_UPG[id].cost(P.ppUpg[id]);
+  var available = getPPAvailable();
+  if (available >= cost) {
+    P.ppUpg[id]++;
+    updateUI();
+  }
+}
+
+function buyHypUpg(id) {
+  var cost = HYP_UPG[id].cost(P.hypUpg[id]);
+  var available = P.inf.toNumber() - Object.values(P.hypUpg).reduce((a, b) => a + b, 0);
+  if (available >= cost) {
+    P.hypUpg[id]++;
     updateUI();
   }
 }
@@ -615,6 +726,7 @@ function eternity() {
     P.pp = B(0);
     P.et = P.et.add(B(1));
     for (var k in P.levels) P.levels[k] = 0;
+    for (var k in P.ppUpg) P.ppUpg[k] = 0;
     for (var k in P.auto) P.auto[k] = false;
     updateUI();
   }
@@ -628,6 +740,7 @@ function infinity() {
     P.et = B(0);
     P.inf = P.inf.add(B(1));
     for (var k in P.levels) P.levels[k] = 0;
+    for (var k in P.ppUpg) P.ppUpg[k] = 0;
     for (var k in P.auto) P.auto[k] = false;
     updateUI();
   }
@@ -673,11 +786,13 @@ function updateUI() {
   if (P.pp.gt(0)) bd += '<span class="pbadge pp">PP: ' + fmt(P.pp) + '</span>';
   if (P.et.gt(0)) bd += '<span class="pbadge et">EP: ' + fmt(P.et) + '</span>';
   if (P.inf.gt(0)) bd += '<span class="pbadge inf">∞P: ' + fmt(P.inf) + '</span>';
+  if (P.hyp.gt(0)) bd += '<span class="pbadge hyp">HP: ' + fmt(P.hyp) + '</span>';
   document.getElementById('prestige-bar').innerHTML = bd;
 
   // Tab locks
   lockTab('tab-et', P.pp.toNumber() === 0);
   lockTab('tab-inf', P.et.toNumber() === 0);
+  lockTab('tab-hyp', P.inf.toNumber() === 0);
   lockTab('tab-auto', P.inf.toNumber() === 0);
 
   // Prestige tab
@@ -690,13 +805,19 @@ function updateUI() {
   // Upgrades
   buildUpgrades(pts);
 
+  // PP Upgrades
+  buildPPUpgrades();
+
   // Eternity
   var etC = getEternityCost(), canET = pts.gte(etC);
   document.getElementById('et-inner').innerHTML = P.pp.toNumber() === 0 ? '<div class="layer-locked"><div class="biglock">🔒</div><h4>Eternity (Locked)</h4><p>Perform Prestige to unlock.</p></div>' : '<div class="layer-stat" style="color:var(--gold)">' + fmt(P.et) + ' <small style="font-size:.4em">EP</small></div><div class="layer-effect">Each Eternity resets Prestige layers but unlocks passive production improvements.</div><div class="divider"></div><button class="pres-btn et-btn" onclick="eternity()" ' + (canET ? '' : 'disabled') + '>[ Perform Eternity Reset ]</button><div class="req-text' + (canET ? ' met' : '') + '">Requires: <b>1e100</b> points' + (canET ? ' ✓ Reached!' : '') + '</div>';
 
   // Infinity
   var infC = getInfinityCost(), canINF = pts.gte(infC);
-  document.getElementById('inf-inner').innerHTML = P.et.toNumber() === 0 ? '<div class="layer-locked"><div class="biglock">🔒</div><h4>Infinity (Locked)</h4><p>Perform Eternity to unlock.</p></div>' : '<div class="layer-stat" style="color:var(--inf)">∞P: ' + fmt(P.inf) + '</div><div class="layer-effect">Each Infinity reset unlocks <b>full automation</b>. Build your ultimate passive empire.</div><div class="divider"></div><button class="pres-btn inf-btn" onclick="infinity()" ' + (canINF ? '' : 'disabled') + '>[ Perform Infinity Reset ]</button><div class="req-text' + (canINF ? ' met' : '') + '">Requires: <b>1e500</b> points' + (canINF ? ' ✓ Reached!' : '') + '</div>';
+  document.getElementById('inf-inner').innerHTML = P.et.toNumber() === 0 ? '<div class="layer-locked"><div class="biglock">🔒</div><h4>Infinity (Locked)</h4><p>Perform Eternity to unlock.</p></div>' : '<div class="layer-stat" style="color:var(--inf)">∞P: ' + fmt(P.inf) + '</div><div class="layer-effect">Each Infinity reset unlocks <b>full automation</b> and hyperoperations. Build your ultimate passive empire.</div><div class="divider"></div><button class="pres-btn inf-btn" onclick="infinity()" ' + (canINF ? '' : 'disabled') + '>[ Perform Infinity Reset ]</button><div class="req-text' + (canINF ? ' met' : '') + '">Requires: <b>1e500</b> points' + (canINF ? ' ✓ Reached!' : '') + '</div>';
+
+  // Hyperoperations
+  buildHyperoperations();
 
   // Automation
   buildAutomation();
@@ -727,6 +848,44 @@ function buildUpgrades(pts) {
   }
 
   document.getElementById('upgrades-list').innerHTML = html;
+}
+
+function buildPPUpgrades() {
+  if (P.pp.toNumber() === 0) {
+    document.getElementById('pp-upg-list').innerHTML = '<div class="locked-card"><div class="lock-title">🔒 Prestige Upgrades (Locked)</div><div class="lock-sub">Reach 1 PP to unlock</div></div>';
+    return;
+  }
+
+  var available = getPPAvailable();
+  var html = '<div class="pp-stat">Available: <span id="pp-available-upd">' + available + '</span> PP</div>';
+
+  for (var id in PP_UPG) {
+    var d = PP_UPG[id], lvl = P.ppUpg[id];
+    var cost = d.cost(lvl), can = available >= cost;
+
+    html += '<div class="upg-card' + (can ? ' affordable' : '') + '"><div class="upg-header"><span class="upg-name">' + d.name + ' (Lv ' + lvl + ')</span></div><div class="upg-desc">' + d.desc + '</div><div class="upg-actions"><button class="buy-btn" onclick="buyPPUpg(\'' + id + '\')" ' + (can ? '' : 'disabled') + '>Buy — Cost: ' + cost + ' PP</button></div></div>';
+  }
+
+  document.getElementById('pp-upg-list').innerHTML = html;
+}
+
+function buildHyperoperations() {
+  if (P.inf.toNumber() === 0) {
+    document.getElementById('hyp-inner').innerHTML = '<div class="locked-card"><div class="lock-title">🔒 Hyperoperations (Locked)</div><div class="lock-sub">Reach Infinity to unlock</div></div>';
+    return;
+  }
+
+  var available = P.inf.toNumber() - Object.values(P.hypUpg).reduce((a, b) => a + b, 0);
+  var html = '<div class="pp-stat">Available: ' + available.toFixed(0) + ' Infinity Points</div>';
+
+  for (var id in HYP_UPG) {
+    var d = HYP_UPG[id], lvl = P.hypUpg[id];
+    var cost = d.cost(lvl), can = available >= cost;
+
+    html += '<div class="upg-card' + (can ? ' affordable' : '') + '"><div class="upg-header"><span class="upg-name">' + d.name + ' (Lv ' + lvl + ')</span></div><div class="upg-desc">' + d.desc + '</div><div class="upg-actions"><button class="buy-btn" onclick="buyHypUpg(\'' + id + '\')" ' + (can ? '' : 'disabled') + '>Buy — Cost: ' + cost + ' ∞P</button></div></div>';
+  }
+
+  document.getElementById('hyp-inner').innerHTML = html;
 }
 
 function buildAutomation() {
