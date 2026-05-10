@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OmegaNum: Turbo Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   SKOBELOFF WINDOWS PALETTE
+   skobeloff:  #007474  (deep teal-green)
+   light:      #b2dfdb
+   mid:        #4db6ac
+   dark bg:    #1a2e2e
+   panel:      #2a4040
+   raised:     #3a5858
+   sunken:     #142828
+   text:       #d4efef
+   accent:     #00b4b4
+   highlight:  #80ffee
+   win-grey:   #c0c0c0  (classic window chrome)
+═══════════════════════════════════════════ */
+:root {
+  --sko:    #007474;
+  --light:  #b2dfdb;
+  --mid:    #4db6ac;
+  --dark:   #1a2e2e;
+  --panel:  #2a4040;
+  --raised: #3a5858;
+  --sunken: #142828;
+  --txt:    #d4efef;
+  --accent: #00c4c4;
+  --hi:     #80ffee;
+  --warn:   #ffcc44;
+  --win:    #c0d8d8;
+  --winbdr: #007474;
+  --purple: #a080c0;
+  --gold:   #ccaa00;
+  --inf:    #40d0ff;
+  --sing:   #ff8844;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; image-rendering: pixelated; }
+
+body {
+  font-family: 'Kalam', cursive;
+  background: var(--dark);
+  color: var(--txt);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 80px;
+  background-image:
+    repeating-linear-gradient(0deg,  transparent, transparent 31px, #00747415 32px),
+    repeating-linear-gradient(90deg, transparent, transparent 31px, #00747415 32px);
+}
+
+/* ── WINDOW CHROME MIXIN ── */
+.win {
+  background: var(--panel);
+  border-top:    2px solid #5a8888;
+  border-left:   2px solid #5a8888;
+  border-right:  2px solid #0a1e1e;
+  border-bottom: 2px solid #0a1e1e;
+  border-radius: 0;
+}
+.win-inset {
+  border-top:    2px solid #0a1e1e;
+  border-left:   2px solid #0a1e1e;
+  border-right:  2px solid #5a8888;
+  border-bottom: 2px solid #5a8888;
+  background: var(--sunken);
+  padding: 6px 8px;
+}
+.titlebar {
+  background: linear-gradient(90deg, var(--sko), #005050);
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 1em;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #003333;
+}
+.titlebar-dot {
+  width: 12px; height: 12px;
+  background: var(--mid);
+  border-top: 1px solid #80cccc;
+  border-left: 1px solid #80cccc;
+  border-right: 1px solid #003333;
+  border-bottom: 1px solid #003333;
+  display: inline-block;
+}
+
+/* ── HEADER ── */
+.header {
+  width: 100%;
+  position: sticky; top: 0; z-index: 200;
+  background: var(--panel);
+  border-bottom: 3px solid var(--sko);
+  box-shadow: 0 4px 0 #003333;
+}
+.header-inner {
+  padding: 10px 20px 10px;
+  text-align: center;
+}
+.header-titlebar {
+  background: linear-gradient(90deg, #007474, #009090, #007474);
+  padding: 5px 12px;
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pts-display {
+  font-size: 2.4em;
+  font-weight: 700;
+  color: var(--hi);
+  text-shadow: 0 0 12px #00ffcc66, 2px 2px 0 #003333;
+  margin: 8px 0 2px;
+  line-height: 1;
+}
+.pps-line { font-size: .95em; color: var(--light); margin-bottom: 8px; }
+.pps-line b { color: var(--accent); }
+
+.click-btn {
+  font-family: 'Kalam', cursive;
+  font-weight: 700;
+  font-size: 1.1em;
+  background: var(--raised);
+  color: var(--hi);
+  border-top:   2px solid #6aacac;
+  border-left:  2px solid #6aacac;
+  border-right: 2px solid #0a1e1e;
+  border-bottom:2px solid #0a1e1e;
+  padding: 10px 32px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all .08s;
+  margin-bottom: 6px;
+}
+.click-btn:hover  { background: #4a6868; color: #fff; }
+.click-btn:active {
+  border-top:   2px solid #0a1e1e;
+  border-left:  2px solid #0a1e1e;
+  border-right: 2px solid #6aacac;
+  border-bottom:2px solid #6aacac;
+  transform: translate(1px,1px);
+}
+
+/* prestige badges */
+.prestige-bar { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; padding:4px 0; }
+.pbadge {
+  padding: 2px 10px;
+  font-size: .82em;
+  font-weight: 700;
+  border-top:   1px solid #6aacac;
+  border-left:  1px solid #6aacac;
+  border-right: 1px solid #0a1e1e;
+  border-bottom:1px solid #0a1e1e;
+  background: var(--sunken);
+}
+.pbadge.pp   { color: #c0a0ff; }
+.pbadge.et   { color: var(--gold); }
+.pbadge.inf  { color: var(--inf);  }
+.pbadge.sing { color: var(--sing); }
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 1;
+  border-bottom: 2px solid var(--sko);
+}
+.tab-btn {
+  font-family: 'Kalam', cursive;
+  font-size: .88em;
+  font-weight: 700;
+  background: var(--raised);
+  color: var(--light);
+  border-top:   2px solid #5a8888;
+  border-left:  2px solid #5a8888;
+  border-right: 2px solid #0a1e1e;
+  border-bottom:none;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background .1s;
+  position: relative;
+  top: 2px;
+  line-height: 1.3;
+  text-align: center;
+}
+.tab-btn small { display:block; font-size:.72em; color:var(--mid); font-weight:400; }
+.tab-btn:hover:not(.tab-locked)  { background: #4a6868; color:#fff; }
+.tab-btn.active {
+  background: var(--panel);
+  color: var(--hi);
+  border-bottom: 2px solid var(--panel);
+  z-index: 2;
+}
+.tab-btn.tab-locked { color:#3a5858; cursor:not-allowed; opacity:.45; }
+
+/* ── CONTENT ── */
+.tab-content { display:none; width:95%; max-width:860px; margin-top:16px; flex-direction:column; align-items:center; gap:14px; z-index:1; }
+.tab-content.active { display:flex; }
+
+/* ── PANEL / WINDOW ── */
+.game-window {
+  width: 100%;
+  background: var(--panel);
+  border-top:   2px solid #5a8888;
+  border-left:  2px solid #5a8888;
+  border-right: 2px solid #0a1e1e;
+  border-bottom:2px solid #0a1e1e;
+}
+.game-window .titlebar { margin-bottom: 0; }
+.game-window .body { padding: 14px 16px; }
+
+/* ── LAYER BOX ── */
+.layer-stat { font-size: 2em; font-weight: 700; margin: 4px 0; }
+.layer-effect { font-size: .85em; color: var(--light); line-height: 1.7; margin: 8px 0 14px; }
+.layer-effect b { color: var(--hi); }
+
+/* ── PRES BTN ── */
+.pres-btn {
+  font-family:'Kalam',cursive; font-weight:700; font-size:1em;
+  width:100%; padding:10px;
+  background: var(--raised);
+  border-top:   2px solid #5a8888;
+  border-left:  2px solid #5a8888;
+  border-right: 2px solid #0a1e1e;
+  border-bottom:2px solid #0a1e1e;
+  cursor:pointer; transition:all .08s;
+}
+.pres-btn:disabled { opacity:.3; cursor:not-allowed; }
+.pres-btn:not(:disabled):active {
+  border-top:2px solid #0a1e1e; border-left:2px solid #0a1e1e;
+  border-right:2px solid #5a8888; border-bottom:2px solid #5a8888;
+  transform:translate(1px,1px);
+}
+.pres-btn.pp-btn   { color:#c0a0ff; }
+.pres-btn.et-btn   { color:var(--gold); }
+.pres-btn.inf-btn  { color:var(--inf);  }
+.pres-btn.sg-btn   { color:var(--sing); }
+.pres-btn:not(:disabled):hover { background:#4a6868; }
+
+.req-text     { font-size:.82em; color:var(--mid); margin-top:6px; text-align:center; }
+.req-text.met { color:#80ffcc; font-weight:700; }
+
+/* ── UPGRADE GRID ── */
+.upg-grid { display:flex; flex-direction:column; gap:8px; width:100%; }
+.upg-section-label {
+  font-size:.85em; font-weight:700; color:var(--mid);
+  padding: 3px 0 6px;
+  border-bottom: 1px solid var(--sko);
+  margin: 4px 0 2px;
+  letter-spacing:.5px;
+}
+.upg-card {
+  background: var(--raised);
+  border-top:   2px solid #5a8888;
+  border-left:  2px solid #5a8888;
+  border-right: 2px solid #0a1e1e;
+  border-bottom:2px solid #0a1e1e;
+  padding: 11px 13px;
+  transition: background .1s;
+}
+.upg-card.affordable { background:#3d6060; }
+.upg-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+.upg-name { font-size:.95em; font-weight:700; color:var(--hi); }
+.upg-lvl  { font-size:.8em; color:var(--mid); }
+.upg-asc  { font-size:.75em; color:#c090ff; margin-left:6px; }
+.upg-desc { font-size:.82em; color:var(--light); line-height:1.5; margin-bottom:8px; }
+.upg-desc b { color:var(--txt); }
+.upg-actions { display:flex; gap:7px; }
+.buy-btn {
+  flex:1; font-family:'Kalam',cursive; font-size:.9em;
+  background:var(--panel);
+  color:var(--txt);
+  border-top:2px solid #5a8888; border-left:2px solid #5a8888;
+  border-right:2px solid #0a1e1e; border-bottom:2px solid #0a1e1e;
+  padding:7px 10px; cursor:pointer; transition:all .08s;
+}
+.buy-btn:hover:not(:disabled) { background:#3d6060; color:var(--hi); }
+.buy-btn:active:not(:disabled) {
+  border-top:2px solid #0a1e1e; border-left:2px solid #0a1e1e;
+  border-right:2px solid #5a8888; border-bottom:2px solid #5a8888;
+}
+.buy-btn:disabled { color:#3a5858; cursor:not-allowed; }
+
+/* ── LOCKED CARDS ── */
+.locked-card {
+  background: var(--sunken);
+  border-top:2px solid #0a1e1e; border-left:2px solid #0a1e1e;
+  border-right:2px solid #5a8888; border-bottom:2px solid #5a8888;
+  padding:14px; text-align:center;
+}
+.lock-title { font-size:.85em; font-weight:700; color:#3d6060; margin-bottom:4px; }
+.lock-sub   { font-size:.75em; color:#2a4848; }
+.prog-wrap  { background:#0a1e1e; height:6px; margin-top:10px; border-top:1px solid #003333; border-left:1px solid #003333; border-right:1px solid #3a5858; border-bottom:1px solid #3a5858; }
+.prog-fill  { height:100%; background:var(--sko); transition:width .4s; }
+
+/* ── LAYER LOCKED ── */
+.layer-locked { text-align:center; padding:36px 20px; }
+.layer-locked .biglock { font-size:2.8em; margin-bottom:12px; opacity:.3; }
+.layer-locked h4 { font-weight:700; font-size:1em; color:#2a4848; margin-bottom:6px; }
+.layer-locked p  { font-size:.82em; color:#1e3838; }
+
+/* ── GEN STATS ── */
+.gen-stats {
+  background:var(--sunken);
+  border-top:2px solid #0a1e1e; border-left:2px solid #0a1e1e;
+  border-right:2px solid #5a8888; border-bottom:2px solid #5a8888;
+  padding:8px 12px; margin-bottom:6px;
+}
+.gen-row { display:flex; justify-content:space-between; align-items:center; font-size:.82em; padding:3px 0; border-bottom:1px solid #1e3838; }
+.gen-row:last-child { border-bottom:none; }
+.gen-lbl { color:var(--mid); }
+.gen-val { color:var(--accent); font-weight:700; }
+
+.divider { width:100%; height:2px; background:var(--sko); margin:10px 0; border-top:1px solid #0a1e1e; border-bottom:1px solid #5a8888; }
+
+.auto-grid { display: flex; flex-direction: column; gap: 8px; }
+.auto-card {
+  background: var(--raised);
+  border-top: 2px solid #5a8888;
+  border-left: 2px solid #5a8888;
+  border-right: 2px solid #0a1e1e;
+  border-bottom: 2px solid #0a1e1e;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.auto-info { flex: 1; }
+.auto-name { font-size: .95em; font-weight: 700; color: var(--hi); }
+.auto-desc { font-size: .75em; color: var(--light); margin-top: 2px; }
+.toggle-btn {
+  font-family: 'Kalam', cursive;
+  font-weight: 700;
+  font-size: .9em;
+  background: var(--panel);
+  color: var(--txt);
+  border-top: 2px solid #5a8888;
+  border-left: 2px solid #5a8888;
+  border-right: 2px solid #0a1e1e;
+  border-bottom: 2px solid #0a1e1e;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all .08s;
+  min-width: 70px;
+}
+.toggle-btn:hover { background: #3d6060; color: var(--hi); }
+.toggle-btn.on { background: #2a5050; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<div class="header">
+  <div class="header-titlebar">
+    <span class="titlebar-dot"></span>
+    <span class="titlebar-dot"></span>
+    OmegaNum: Turbo Edition
+  </div>
+  <div class="header-inner">
+    <div class="pts-display"><span id="hdr-pts">0</span> <small style="font-size:.35em;color:var(--mid)">POINTS</small></div>
+    <div class="pps-line">Production: <b id="hdr-pps">0</b>/s &nbsp;·&nbsp; Click: +<b id="hdr-click">0</b></div>
+    <button class="click-btn" id="click-btn">[ Click to Generate Points ]</button>
+    <div class="prestige-bar" id="prestige-bar"></div>
+  </div>
+</div>
+
+<!-- ══ TABS ══ -->
+<div class="tabs" id="tabs">
+  <button class="tab-btn active" data-tab="main">Upgrades</button>
+  <button class="tab-btn" data-tab="prestige">Prestige<small>Cost: (PP+1)³×10k</small></button>
+  <button class="tab-btn tab-et"  data-tab="eternity"    id="tab-et" >Eternity<small>Req: 1e100</small></button>
+  <button class="tab-btn tab-inf" data-tab="infinity"    id="tab-inf">Infinity<small>Req: 1e500</small></button>
+  <button class="tab-btn tab-auto" data-tab="automation" id="tab-auto">Automation<small>Unlocks @ ∞</small></button>
+</div>
+
+<!-- ══ UPGRADES ══ -->
+<div id="main" class="tab-content active">
+  <div class="game-window" style="max-width:700px;">
+    <div class="titlebar"><span class="titlebar-dot"></span> Advancement Matrix</div>
+    <div class="body"><div id="upgrades-list" class="upg-grid"></div></div>
+  </div>
+</div>
+
+<!-- ══ PRESTIGE ══ -->
+<div id="prestige" class="tab-content">
+  <div class="game-window" style="max-width:580px;">
+    <div class="titlebar" style="background:linear-gradient(90deg,#604090,#402070)"><span class="titlebar-dot"></span> Prestige — Layer 1</div>
+    <div class="body">
+      <div class="layer-stat" style="color:#c0a0ff"><span id="pp-amt">0</span> <small style="font-size:.4em">PP</small></div>
+      <div class="layer-effect">
+        <b>Each PP</b> multiplies production by <b>×1.1</b>.<br>
+        <b>Next cost:</b> (current PP + 1)³ × 10,000 points.
+      </div>
+      <button class="pres-btn pp-btn" id="pp-btn">[ Perform Prestige Reset ]</button>
+      <div class="req-text" id="pp-req-txt">Requires <span id="pp-cost-disp">10,000</span> points</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ETERNITY ══ -->
+<div id="eternity" class="tab-content">
+  <div class="game-window" style="max-width:580px;">
+    <div class="titlebar" style="background:linear-gradient(90deg,#806000,#604000)"><span class="titlebar-dot"></span> Eternity — Layer 2</div>
+    <div class="body"><div id="et-inner"></div></div>
+  </div>
+</div>
+
+<!-- ══ INFINITY ══ -->
+<div id="infinity" class="tab-content">
+  <div class="game-window" style="max-width:580px;">
+    <div class="titlebar" style="background:linear-gradient(90deg,#006080,#004060)"><span class="titlebar-dot"></span> Infinity — Layer 3</div>
+    <div class="body"><div id="inf-inner"></div></div>
+  </div>
+</div>
+
+<!-- ══ AUTOMATION ══ -->
+<div id="automation" class="tab-content">
+  <div class="game-window" style="max-width:580px;">
+    <div class="titlebar" style="background:linear-gradient(90deg,#805080,#604070)"><span class="titlebar-dot"></span> Automation</div>
+    <div class="body"><div id="auto-list" class="auto-grid"></div></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  SIMPLE BIG NUMBER (no exponential towers)
+// ════════════════════════════════════════════════════════════
+class Big {
+  constructor(v) {
+    if (v instanceof Big) { this.val = v.val; return; }
+    if (typeof v === 'string') v = parseFloat(v);
+    this.val = Math.max(0, v || 0);
+  }
+  static of(v) { return v instanceof Big ? new Big(v) : new Big(v); }
+
+  cmp(b) {
+    b = Big.of(b);
+    if (this.val > b.val) return 1;
+    if (this.val < b.val) return -1;
+    return 0;
+  }
+  gte(b) { return this.cmp(b) >= 0; }
+  gt(b) { return this.cmp(b) > 0; }
+  lte(b) { return this.cmp(b) <= 0; }
+  lt(b) { return this.cmp(b) < 0; }
+  eq(b) { return this.cmp(b) === 0; }
+
+  toNumber() { return this.val; }
+
+  add(b) {
+    b = Big.of(b);
+    return new Big(this.val + b.val);
+  }
+
+  sub(b) {
+    b = Big.of(b);
+    return new Big(Math.max(0, this.val - b.val));
+  }
+
+  mul(b) {
+    b = Big.of(b);
+    return new Big(this.val * b.val);
+  }
+
+  div(b) {
+    b = Big.of(b);
+    if (b.val === 0) return new Big(0);
+    return new Big(this.val / b.val);
+  }
+
+  pow(exp) {
+    let e = exp instanceof Big ? exp.toNumber() : exp;
+    if (e === 0) return new Big(1);
+    if (e === 1) return new Big(this.val);
+    return new Big(Math.pow(this.val, e));
+  }
+
+  floor() { return new Big(Math.floor(this.val)); }
+
+  toString() {
+    let v = this.val;
+    if (v < 1e6) return Math.floor(v).toLocaleString();
+    let e = Math.floor(Math.log10(v)), m = v / Math.pow(10, e);
+    return m.toFixed(2) + 'e' + e;
+  }
+}
+
+function B(v) { return new Big(v); }
+
+// ════════════════════════════════════════════════════════════
+//  GAME STATE
+// ════════════════════════════════════════════════════════════
+var P = {
+  points: B(0),
+  pp: B(0), et: B(0), inf: B(0),
+  levels: { gen: 0, click: 0, worker: 0, factory: 0, mult: 0 },
+  auto: { gen: false, click: false, worker: false, factory: false }
+};
+
+// ════════════════════════════════════════════════════════════
+//  UPGRADE DEFS
+// ════════════════════════════════════════════════════════════
+var UPG = {
+  gen: {
+    name: 'Point Generator',
+    desc: 'Produces <b>2 pts/s × level</b>. Simple, steady income.',
+    cost: function(l) { return B(Math.pow(l + 1, 2) * 5); },
+    unlock: 0
+  },
+  click: {
+    name: 'Clickpower',
+    desc: 'Each level adds <b>+1</b> to click power. Multiplicative scaling with Prestige.',
+    cost: function(l) { return B(Math.pow(l + 1, 2) * 8); },
+    unlock: 0
+  },
+  worker: {
+    name: 'Worker Drones',
+    desc: 'Each level spawns <b>3 workers</b>. Total workers × 0.5 = bonus multiplier to production.',
+    cost: function(l) { return B(Math.pow(l + 1, 2.2) * 50); },
+    unlock: 50
+  },
+  factory: {
+    name: 'Mega Factory',
+    desc: 'Each level adds <b>+20%</b> to all production. Stacks linearly.',
+    cost: function(l) { return B(Math.pow(l + 1, 2.5) * 300); },
+    unlock: 500
+  },
+  mult: {
+    name: 'Multiplier Boost',
+    desc: 'Each level adds <b>+0.05</b> exponent to production. Subtle but powerful.',
+    cost: function(l) { return B(Math.pow(l + 1, 1.8) * 1000); },
+    unlock: 5000
+  }
+};
+
+// ════════════════════════════════════════════════════════════
+//  MATH
+// ════════════════════════════════════════════════════════════
+function getGenOutput() {
+  var base = B(2 * P.levels.gen);
+  var workers = P.levels.worker * 3;
+  var workerMult = B(1 + workers * 0.5);
+  var factoryBoost = B(1 + P.levels.factory * 0.2);
+  var ppMult = B(1.1).pow(P.pp.toNumber());
+  var result = base.mul(workerMult).mul(factoryBoost).mul(ppMult);
+  var exponent = 1 + P.levels.mult * 0.05;
+  return result.pow(exponent);
+}
+
+function getClickPower() {
+  var base = B(1 + P.levels.click);
+  var ppMult = B(1.1).pow(P.pp.toNumber());
+  return base.mul(ppMult);
+}
+
+function getPrestigeCost() {
+  var n = P.pp.toNumber();
+  return B(Math.pow(n + 1, 3) * 10000);
+}
+
+function getEternityCost() {
+  return B(1e100);
+}
+
+function getInfinityCost() {
+  return B(1e500);
+}
+
+// ════════════════════════════════════════════════════════════
+//  ACTIONS
+// ════════════════════════════════════════════════════════════
+function doClick() {
+  P.points = P.points.add(getClickPower());
+  updateUI();
+}
+
+function buy(id) {
+  var cost = UPG[id].cost(P.levels[id]);
+  if (P.points.gte(cost)) {
+    P.points = P.points.sub(cost);
+    P.levels[id]++;
+    updateUI();
+  }
+}
+
+function prestige() {
+  var cost = getPrestigeCost();
+  if (P.points.gte(cost)) {
+    P.points = B(0);
+    P.pp = P.pp.add(B(1));
+    for (var k in P.levels) P.levels[k] = 0;
+    updateUI();
+  }
+}
+
+function eternity() {
+  var cost = getEternityCost();
+  if (P.points.gte(cost)) {
+    P.points = B(0);
+    P.pp = B(0);
+    P.et = P.et.add(B(1));
+    for (var k in P.levels) P.levels[k] = 0;
+    for (var k in P.auto) P.auto[k] = false;
+    updateUI();
+  }
+}
+
+function infinity() {
+  var cost = getInfinityCost();
+  if (P.points.gte(cost)) {
+    P.points = B(0);
+    P.pp = B(0);
+    P.et = B(0);
+    P.inf = P.inf.add(B(1));
+    for (var k in P.levels) P.levels[k] = 0;
+    for (var k in P.auto) P.auto[k] = false;
+    updateUI();
+  }
+}
+
+function toggleAuto(id) {
+  if (P.inf.gt(0)) {
+    P.auto[id] = !P.auto[id];
+    updateUI();
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════════════════
+document.getElementById('tabs').addEventListener('click', function(e) {
+  var btn = e.target.closest('.tab-btn');
+  if (!btn || btn.classList.contains('tab-locked')) return;
+  var tab = btn.dataset.tab;
+  if (!tab) return;
+  document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById(tab).classList.add('active');
+  btn.classList.add('active');
+});
+
+document.getElementById('click-btn').addEventListener('click', doClick);
+
+// ════════════════════════════════════════════════════════════
+//  UI
+// ════════════════════════════════════════════════════════════
+function fmt(n) {
+  try { return n.toString(); } catch (e) { return '0'; }
+}
+
+function updateUI() {
+  var pts = P.points;
+  document.getElementById('hdr-pts').textContent = fmt(pts);
+  document.getElementById('hdr-pps').textContent = fmt(getGenOutput());
+  document.getElementById('hdr-click').textContent = fmt(getClickPower());
+
+  var bd = '';
+  if (P.pp.gt(0)) bd += '<span class="pbadge pp">PP: ' + fmt(P.pp) + '</span>';
+  if (P.et.gt(0)) bd += '<span class="pbadge et">EP: ' + fmt(P.et) + '</span>';
+  if (P.inf.gt(0)) bd += '<span class="pbadge inf">∞P: ' + fmt(P.inf) + '</span>';
+  document.getElementById('prestige-bar').innerHTML = bd;
+
+  // Tab locks
+  lockTab('tab-et', P.pp.toNumber() === 0);
+  lockTab('tab-inf', P.et.toNumber() === 0);
+  lockTab('tab-auto', P.inf.toNumber() === 0);
+
+  // Prestige tab
+  var ppc = getPrestigeCost(), canPP = pts.gte(ppc);
+  document.getElementById('pp-amt').textContent = fmt(P.pp);
+  document.getElementById('pp-cost-disp').textContent = fmt(ppc);
+  document.getElementById('pp-btn').disabled = !canPP;
+  document.getElementById('pp-btn').onclick = prestige;
+
+  // Upgrades
+  buildUpgrades(pts);
+
+  // Eternity
+  var etC = getEternityCost(), canET = pts.gte(etC);
+  document.getElementById('et-inner').innerHTML = P.pp.toNumber() === 0 ? '<div class="layer-locked"><div class="biglock">🔒</div><h4>Eternity (Locked)</h4><p>Perform Prestige to unlock.</p></div>' : '<div class="layer-stat" style="color:var(--gold)">' + fmt(P.et) + ' <small style="font-size:.4em">EP</small></div><div class="layer-effect">Each Eternity resets Prestige layers but unlocks passive production improvements.</div><div class="divider"></div><button class="pres-btn et-btn" onclick="eternity()" ' + (canET ? '' : 'disabled') + '>[ Perform Eternity Reset ]</button><div class="req-text' + (canET ? ' met' : '') + '">Requires: <b>1e100</b> points' + (canET ? ' ✓ Reached!' : '') + '</div>';
+
+  // Infinity
+  var infC = getInfinityCost(), canINF = pts.gte(infC);
+  document.getElementById('inf-inner').innerHTML = P.et.toNumber() === 0 ? '<div class="layer-locked"><div class="biglock">🔒</div><h4>Infinity (Locked)</h4><p>Perform Eternity to unlock.</p></div>' : '<div class="layer-stat" style="color:var(--inf)">∞P: ' + fmt(P.inf) + '</div><div class="layer-effect">Each Infinity reset unlocks <b>full automation</b>. Build your ultimate passive empire.</div><div class="divider"></div><button class="pres-btn inf-btn" onclick="infinity()" ' + (canINF ? '' : 'disabled') + '>[ Perform Infinity Reset ]</button><div class="req-text' + (canINF ? ' met' : '') + '">Requires: <b>1e500</b> points' + (canINF ? ' ✓ Reached!' : '') + '</div>';
+
+  // Automation
+  buildAutomation();
+}
+
+function lockTab(id, lock) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (lock) el.classList.add('tab-locked');
+  else el.classList.remove('tab-locked');
+}
+
+function buildUpgrades(pts) {
+  var pn = pts.toNumber();
+  var html = '';
+
+  for (var id in UPG) {
+    var d = UPG[id], lvl = P.levels[id];
+    var cost = d.cost(lvl), can = pts.gte(cost);
+    var locked = pn < d.unlock && d.unlock > 0;
+
+    if (locked) {
+      var prog = Math.min(pn / d.unlock, 1) * 100;
+      html += '<div class="locked-card"><div class="lock-title">🔒 ' + d.name + '</div><div class="lock-sub">Reach ' + d.unlock.toLocaleString() + ' points</div><div class="prog-wrap"><div class="prog-fill" style="width:' + prog.toFixed(1) + '%"></div></div></div>';
+    } else {
+      html += '<div class="upg-card' + (can ? ' affordable' : '') + '"><div class="upg-header"><span class="upg-name">' + d.name + ' (Lv ' + lvl + ')</span></div><div class="upg-desc">' + d.desc + '</div><div class="upg-actions"><button class="buy-btn" onclick="buy(\'' + id + '\')" ' + (can ? '' : 'disabled') + '>Buy — ' + fmt(cost) + '</button></div></div>';
+    }
+  }
+
+  document.getElementById('upgrades-list').innerHTML = html;
+}
+
+function buildAutomation() {
+  if (P.inf.toNumber() === 0) {
+    document.getElementById('auto-list').innerHTML = '<div class="locked-card"><div class="lock-title">🔒 Automation (Locked)</div><div class="lock-sub">Reach Infinity to unlock</div></div>';
+    return;
+  }
+
+  var html = '';
+  var autoOpts = [
+    { id: 'gen', name: 'Auto Generator', desc: 'Automatically buy generators' },
+    { id: 'click', name: 'Auto Clicker', desc: 'Automatically click' },
+    { id: 'worker', name: 'Auto Workers', desc: 'Automatically buy workers' },
+    { id: 'factory', name: 'Auto Factory', desc: 'Automatically buy factories' }
+  ];
+
+  for (var i = 0; i < autoOpts.length; i++) {
+    var opt = autoOpts[i];
+    var on = P.auto[opt.id] || false;
+    html += '<div class="auto-card"><div class="auto-info"><div class="auto-name">' + opt.name + '</div><div class="auto-desc">' + opt.desc + '</div></div><button class="toggle-btn ' + (on ? 'on' : '') + '" onclick="toggleAuto(\'' + opt.id + '\')">' + (on ? 'ON' : 'OFF') + '</button></div>';
+  }
+
+  document.getElementById('auto-list').innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ════════════════════════════════════════════════════════════
+setInterval(function() {
+  P.points = P.points.add(getGenOutput().div(B(20)));
+
+  if (P.auto.gen) buy('gen');
+  if (P.auto.click) doClick();
+  if (P.auto.worker) buy('worker');
+  if (P.auto.factory) buy('factory');
+
+  updateUI();
+}, 50);
+
+updateUI();
+</script>
+</body>
+</html>
